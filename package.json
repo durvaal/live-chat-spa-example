@@ -2,10 +2,10 @@
     "name": "spa",
     "version": "1.0.0",
     "description": "Websoclet implementation",
-    "main": "./js/server.js",
+    "main": "server.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node ./js/server.js"
+        "start": "node server.js"
     },
     "author": "",
     "license": "ISC",
