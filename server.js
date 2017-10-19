@@ -113,7 +113,7 @@ wsServer.on('request', function(request) {
                 // obter cor aleatória e enviá-lo de volta ao usuário   
                 userColor = selectUserColor();
                 addContact(userName, userColor);
-                connection.sendUTF(JSON.stringify({ type: 'color', data: userColor }));
+                connection.sendUTF(JSON.stringify({ type: 'color', data: { author: userName, color: userColor } }));
                 console.log((new Date()) + ' O usuário é: ' + userName + ' com a cor ' + userColor + '.');
                 // enviar o histórico de contatos ativos
                 for (var i = 0; i < clients.length; i++) {
