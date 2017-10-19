@@ -144,15 +144,16 @@ wsServer.on('request', function(request) {
                 if (!!!res.type.sendTo) { // mensagem transmitida para todos os clientes conectados
                     for (var i = 0; i < clients.length; i++) {
                         clients[i].sendUTF(JSON.stringify({ type: 'message', data: obj }));
-                        // enviar o histórico de contatos ativos
-                        clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
                     }
                 } else { // mensagem transmitida para um unico usuario
                     clients[clients.indexOf(res.data.sendFrom)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
                     clients[clients.indexOf(res.data.sendTo)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
                 }
+                for (var i = 0; i < clients.length; i++) {
+                    // enviar o histórico de contatos ativos
+                    clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+                }
             } else {
-                console.log(res)
                 connection.sendUTF(JSON.stringify({ type: 'error', data: "Formato de mensagem inválida." }));
             }
         }
