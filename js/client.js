@@ -47,7 +47,7 @@ $(function() {
         // verifique o código-fonte do servidor acima
         // primeira resposta do servidor com a cor do usuário
         if (json.type === 'color') {
-            myColor = json.data;
+            myColor = json.data.color;
             status.text(myName + ': ').css('color', myColor);
             input.removeAttr('disabled').focus();
             // A partir de agora, o usuário pode começar a enviar mensagens
@@ -69,22 +69,38 @@ $(function() {
     /**
      * Enviar mensagem quando o usuário pressiona a tecla Enter
      */
+    var loged = false;
     input.keydown(function(e) {
         if (e.keyCode === 13) {
-            var msg = $(this).val();
+            var msg = {};
             if (!msg) {
                 return;
             }
             // envie a mensagem como um texto comum
-            connection.send(msg);
+            if (!loged) {
+                msg = {
+                        type: "sigin",
+                        data: $(this).val()
+                    }
+                    // sabemos que a primeira mensagem enviada de um usuário é o nome deles
+                if (myName === false) {
+                    myName = $(this).val();
+                }
+                loged = true;
+            } else {
+                msg = {
+                    type: "broadcast",
+                    data: {
+                        text: $(this).val(),
+                        sendFrom: myColor
+                    }
+                }
+            }
+            connection.send(JSON.stringify(msg));
             $(this).val('');
             // desativar o campo de entrada para que o usuário aguarde até o servidor
                          // envia resposta de volta
             input.attr('disabled', 'disabled');
-            // sabemos que a primeira mensagem enviada de um usuário é o nome deles
-            if (myName === false) {
-                myName = msg;
-            }
         }
     });
     /**

@@ -12,10 +12,6 @@ var history = [];
 var clients = [];
 // Armazena os nomes dos contatos
 var contacts = [];
-// Função onde iremos executar o servidor do websocket
-function htmlEntities(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 // Array with some colors
 var colors = [];
 // Verifica se a cor já está atribuida a outro usuário
@@ -50,6 +46,18 @@ function removeContact(userName, userColor) {
             contacts.splice(i, 1);
         }
     }
+}
+// Remove o contato de sua respectiva lista
+function getContatNameByColor(userColor) {
+    for (var i = 0; i < contacts.length; i++) {
+        if (contacts[i].color === userColor) {
+            return contacts[i].name;
+        }
+    }
+}
+// Função onde iremos executar o servidor do websocket
+function htmlEntities(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 /**
  * HTTP server
@@ -104,40 +112,48 @@ wsServer.on('request', function(request) {
         connection.sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
     }
     // o usuário enviou alguma mensagem
-    connection.on('message', function(message) {
-        if (message.type === 'utf8') { // aceite apenas o texto
+    connection.on('message', function(request) {
+        var res = JSON.parse(request.utf8Data);
+        if (res.type === 'sigin') { // login
             // A primeira mensagem enviada pelos usuários é o nome deles
-            if (userName === false) {
-                // lembre-se do nome do usuário
-                userName = htmlEntities(message.utf8Data);
-                // obter cor aleatória e enviá-lo de volta ao usuário   
-                userColor = selectUserColor();
+            // lembre-se do nome do usuário
+            userName = res.data;
+            // obter cor aleatória e enviá-lo de volta ao usuário   
+            userColor = selectUserColor();
+            connection.sendUTF(JSON.stringify({ type: 'color', data: { author: userName, color: userColor } }));
+            console.log((new Date()) + ' O usuário é: ' + userName + ' com a cor ' + userColor + '.');
+            // Adiciona o contato a lista de contatos
+            addContact(userName, userColor);
+            // enviar o histórico de contatos ativos
+            for (var i = 0; i < clients.length; i++) {
+                clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+            }
+        } else { // registrar e transmitir a mensagem
+            if (res.type === 'broadcast') {
+                console.log((new Date()) + ' Mensagem recebida de ' + userName + ': ' + res.data.text)
+                    // Adiciona o contato a lista de contatos
                 addContact(userName, userColor);
-                connection.sendUTF(JSON.stringify({ type: 'color', data: { author: userName, color: userColor } }));
-                console.log((new Date()) + ' O usuário é: ' + userName + ' com a cor ' + userColor + '.');
-                // enviar o histórico de contatos ativos
-                for (var i = 0; i < clients.length; i++) {
-                    clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
-                }
-            } else { // registrar e transmitir a mensagem
-                addContact(userName, userColor);
-                console.log((new Date()) + ' Mensagem recebida de ' + userName + ': ' + message.utf8Data);
-
                 // queremos manter o histórico de todas as mensagens enviadas
                 var obj = {
                     time: (new Date()).getTime(),
-                    text: htmlEntities(message.utf8Data),
+                    text: res.data.text,
                     author: userName,
                     color: userColor
                 };
                 history.push(obj);
-                // mensagem transmitida para todos os clientes conectados
-                var json = JSON.stringify({ type: 'message', data: obj });
-                for (var i = 0; i < clients.length; i++) {
-                    clients[i].sendUTF(json);
-                    // enviar o histórico de contatos ativos
-                    clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+                if (!!!res.type.sendTo) { // mensagem transmitida para todos os clientes conectados
+                    for (var i = 0; i < clients.length; i++) {
+                        clients[i].sendUTF(JSON.stringify({ type: 'message', data: obj }));
+                        // enviar o histórico de contatos ativos
+                        clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+                    }
+                } else { // mensagem transmitida para um unico usuario
+                    clients[clients.indexOf(res.data.sendFrom)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
+                    clients[clients.indexOf(res.data.sendTo)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
                 }
+            } else {
+                console.log(res)
+                connection.sendUTF(JSON.stringify({ type: 'error', data: "Formato de mensagem inválida." }));
             }
         }
     });
