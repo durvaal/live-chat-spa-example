@@ -141,15 +141,8 @@ wsServer.on('request', function(request) {
                     color: userColor
                 };
                 history.push(obj);
-                if (!!!res.type.sendTo) { // mensagem transmitida para todos os clientes conectados
-                    for (var i = 0; i < clients.length; i++) {
-                        clients[i].sendUTF(JSON.stringify({ type: 'message', data: obj }));
-                    }
-                } else { // mensagem transmitida para um unico usuario
-                    clients[clients.indexOf(res.data.sendFrom)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
-                    clients[clients.indexOf(res.data.sendTo)].sendUTF(JSON.stringify({ type: 'message', data: obj }));
-                }
                 for (var i = 0; i < clients.length; i++) {
+                    clients[i].sendUTF(JSON.stringify({ type: 'message', data: obj }));
                     // enviar o histórico de contatos ativos
                     clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
                 }
@@ -157,6 +150,7 @@ wsServer.on('request', function(request) {
                 connection.sendUTF(JSON.stringify({ type: 'error', data: "Formato de mensagem inválida." }));
             }
         }
+        console.log("Add " + clients.length)
     });
     // user disconnected
     connection.on('close', function(connection) {
@@ -169,6 +163,7 @@ wsServer.on('request', function(request) {
             // Remove o contato
             removeContact(userName, userColor);
             // enviar o histórico de contatos ativos
+            console.log("Remove " + clients.length)
             for (var i = 0; i < clients.length; i++) {
                 clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
             }
