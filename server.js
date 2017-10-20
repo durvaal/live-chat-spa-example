@@ -55,10 +55,6 @@ function getContatNameByColor(userColor) {
         }
     }
 }
-// Função onde iremos executar o servidor do websocket
-function htmlEntities(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 /**
  * HTTP server
  */
@@ -155,9 +151,11 @@ wsServer.on('request', function(request) {
                 connection.sendUTF(JSON.stringify({ type: 'error', data: "Formato de mensagem inválida." }));
             }
         }
-        // enviar o histórico de bate-papo
-        if (history.length > 0) {
-            connection.sendUTF(JSON.stringify({ type: 'history', data: history }));
+        for (var i = 0; i < clients.length; i++) {
+            // enviar o histórico de contatos ativos
+            clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+            // enviar o histórico de bate-papo
+            clients[i].sendUTF(JSON.stringify({ type: 'history', data: history }));
         }
     });
     // user disconnected
@@ -170,9 +168,11 @@ wsServer.on('request', function(request) {
             colors.splice(colors.indexOf(userColor), 1);
             // Remove o contato
             removeContact(userName, userColor);
-            // enviar o histórico de contatos ativos
             for (var i = 0; i < clients.length; i++) {
+                // enviar o histórico de contatos ativos
                 clients[i].sendUTF(JSON.stringify({ type: 'contacts', data: contacts }));
+                // enviar o histórico de bate-papo
+                clients[i].sendUTF(JSON.stringify({ type: 'history', data: history }));
             }
         }
     });
